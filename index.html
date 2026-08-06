@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Travel & Event Tracker Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & Babel Standalone -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbars for timeline grids */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 10px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 bg-slate-950 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div id="root" class="min-h-full flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Default initial events spanning FY26 through FY29
+        const INITIAL_EVENTS = [
+            {
+                id: 'evt-1',
+                project: 'Apex Retail & Commerce Summit',
+                venue: 'Music City Center',
+                city: 'Nashville',
+                state: 'TN',
+                startDate: '2026-09-25',
+                endDate: '2026-10-02',
+                isTBD: false,
+                confirmationStatus: 'CONFIRMED',
+                fiscalYear: 'FY27',
+                team: ['Jordan Lee', 'Sarah Jenkins'],
+                notes: 'Primary booth setup and keynote AV support.'
+            },
+            {
+                id: 'evt-2',
+                project: 'National Process & Chemical Engineering Expo',
+                venue: 'Minneapolis Convention Center',
+                city: 'Minneapolis',
+                state: 'MN',
+                startDate: '2026-11-06',
+                endDate: '2026-11-13',
+                isTBD: false,
+                confirmationStatus: 'CONFIRMED',
+                fiscalYear: 'FY27',
+                team: ['Dr. Marcus Vance', 'Alex Rivera'],
+                notes: 'Heavy machinery display logistics.'
+            },
+            {
+                id: 'evt-3',
+                project: 'International Hematology Leadership Forum',
+                venue: 'Morial Convention Center',
+                city: 'New Orleans',
+                state: 'LA',
+                startDate: '2026-12-06',
+                endDate: '2026-12-12',
+                isTBD: false,
+                confirmationStatus: 'CONFIRMED',
+                fiscalYear: 'FY27',
+                team: ['Elena Rostova', 'Jordan Lee'],
+                notes: 'Medical symposium stage and hospitality suite.'
+            },
+            {
+                id: 'evt-4',
+                project: 'Lone Star Conservation & Wildlife Gala',
+                venue: 'SMU Field House',
+                city: 'Dallas',
+                state: 'TX',
+                startDate: '2026-03-02',
+                endDate: '2026-03-06',
+                isTBD: false,
+                confirmationStatus: 'CONFIRMED',
+                fiscalYear: 'FY26',
+                team: ['Alex Rivera', 'Sarah Jenkins'],
+                notes: 'Fundraiser live broadcast production.'
+            },
+            {
+                id: 'evt-5',
+                project: 'Ophthalmic & Refractive Innovation Congress',
+                venue: 'San Diego Convention Center',
+                city: 'San Diego',
+                state: 'CA',
+                startDate: '2027-04-12',
+                endDate: '2027-04-18',
+                isTBD: false,
+                confirmationStatus: 'UNCONFIRMED',
+                fiscalYear: 'FY27',
+                team: ['Dr. Marcus Vance', 'Elena Rostova'],
+                notes: 'Tentative dates pending hall allocation.'
+            },
+            {
+                id: 'evt-6',
+                project: 'Global Aerospace Systems Symposium',
+                venue: 'Colorado Convention Center',
+                city: 'Denver',
+                state: 'CO',
+                startDate: '2027-09-14',
+                endDate: '2027-09-21',
+                isTBD: false,
+                confirmationStatus: 'CONFIRMED',
+                fiscalYear: 'FY28',
+                team: ['Jordan Lee', 'Alex Rivera'],
+                notes: 'FY28 kickoff event.'
+            },
+            {
+                id: 'evt-7',
+                project: 'Biomedical Innovation & Robotics Summit',
+                venue: 'Boston Convention Center',
+                city: 'Boston',
+                state: 'MA',
+                startDate: '2028-10-10',
+                endDate: '2028-10-17',
+                isTBD: false,
+                confirmationStatus: 'CONFIRMED',
+                fiscalYear: 'FY29',
+                team: ['Sarah Jenkins', 'Elena Rostova'],
+                notes: 'FY29 flagship exhibition.'
+            }
+        ];
+
+        const TEAM_MEMBERS = [
+            { id: 'tm-1', name: 'Jordan Lee', role: 'Lead Event Specialist', location: 'Dallas, TX', email: 'jordan.l@teamtravel.com' },
+            { id: 'tm-2', name: 'Sarah Jenkins', role: 'Senior Technical Coordinator', location: 'Chicago, IL', email: 'sarah.j@teamtravel.com' },
+            { id: 'tm-3', name: 'Dr. Marcus Vance', role: 'Director of Client Relations', location: 'Atlanta, GA', email: 'marcus.v@teamtravel.com' },
+            { id: 'tm-4', name: 'Elena Rostova', role: 'Logistics & Operations Manager', location: 'New York, NY', email: 'elena.r@teamtravel.com' },
+            { id: 'tm-5', name: 'Alex Rivera', role: 'Field Production Engineer', location: 'Denver, CO', email: 'alex.r@teamtravel.com' }
+        ];
+
+        const INITIAL_TIMEOFF = [
+            { id: 'to-1', person: 'Jordan Lee', type: 'PTO', title: 'Vacation', startDate: '2026-11-10', endDate: '2026-11-15' },
+            { id: 'to-2', person: 'Sarah Jenkins', type: 'NO_TRAVEL', title: 'Local Training Block', startDate: '2026-09-28', endDate: '2026-09-30' },
+            { id: 'to-3', person: 'Global', type: 'HOLIDAY', title: 'Thanksgiving Break', startDate: '2026-11-26', endDate: '2026-11-27' }
+        ];
+
+        const IconCalendar = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        );
+
+        const IconGantt = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+        );
+
+        const IconUsers = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+        );
+
+        const IconUser = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+        );
+
+        const IconPlus = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+            </svg>
+        );
+
+        const IconMapPin = () => (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        );
+
+        const IconAlert = () => (
+            <svg className="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+        );
+
+        function App() {
+            // State
+            const [events, setEvents] = useState(() => {
+                const saved = localStorage.getItem('team_travel_events_v7');
+                return saved ? JSON.parse(saved) : INITIAL_EVENTS;
+            });
+
+            const [timeOffEntries, setTimeOffEntries] = useState(() => {
+                const saved = localStorage.getItem('team_travel_timeoff_v7');
+                return saved ? JSON.parse(saved) : INITIAL_TIMEOFF;
+            });
+
+            const [activeTab, setActiveTab] = useState('events'); // 'events' | 'gantt' | 'workload' | 'profile'
+            const [filterFY, setFilterFY] = useState('ALL');
+            const [filterStatus, setFilterStatus] = useState('ALL');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedMemberProfile, setSelectedMemberProfile] = useState(TEAM_MEMBERS[0].name);
+
+            // Gantt View Specific States
+            const [ganttRangePreset, setGanttRangePreset] = useState('SEP_DEC_2026');
+            const [ganttCustomStart, setGanttCustomStart] = useState('2026-09-01');
+            const [ganttCustomEnd, setGanttCustomEnd] = useState('2026-12-31');
+            const [ganttFY, setGanttFY] = useState('FY27');
+            const [ganttGroupBy, setGanttGroupBy] = useState('personnel'); // 'personnel' | 'project'
+
+            // Modal States
+            const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+            const [editingEvent, setEditingEvent] = useState(null);
+            const [isTimeOffModalOpen, setIsTimeOffModalOpen] = useState(false);
+            const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+            const [eventToDelete, setEventToDelete] = useState(null);
+
+            // Form state for event
+            const [eventFormData, setEventFormData] = useState({
+                project: '',
+                venue: '',
+                city: '',
+                state: '',
+                startDate: '',
+                endDate: '',
+                isTBD: false,
+                confirmationStatus: 'CONFIRMED',
+                fiscalYear: 'FY27',
+                team: [],
+                notes: ''
+            });
+
+            // Form state for time off
+            const [timeOffFormData, setTimeOffFormData] = useState({
+                person: 'Jordan Lee',
+                type: 'PTO',
+                title: '',
+                startDate: '',
+                endDate: ''
+            });
+
+            useEffect(() => {
+                localStorage.setItem('team_travel_events_v7', JSON.stringify(events));
+            }, [events]);
+
+            useEffect(() => {
+                localStorage.setItem('team_travel_timeoff_v7', JSON.stringify(timeOffEntries));
+            }, [timeOffEntries]);
+
+            const getEventFY = (evt) => {
+                if (evt.fiscalYear) return evt.fiscalYear;
+                if (!evt.startDate) return 'FY27';
+                const d = new Date(evt.startDate);
+                const year = d.getFullYear();
+                const month = d.getMonth();
+                const fyYear = month >= 6 ? (year + 1) % 100 : year % 100;
+                return `FY${fyYear}`;
+            };
+
+            const getEventMetrics = (evt) => {
+                if (evt.isTBD || !evt.startDate || !evt.endDate) {
+                    return { travelDays: 0, daysAtSite: 0, weekendDays: 0, status: 'TBD', daysUntil: null };
+                }
+
+                const start = new Date(evt.startDate + 'T00:00:00');
+                const end = new Date(evt.endDate + 'T00:00:00');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const diffTime = Math.abs(end - start);
+                const travelDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                let weekendDays = 0;
+                let cur = new Date(start);
+                while (cur <= end) {
+                    const day = cur.getDay();
+                    if (day === 0 || day === 6) weekendDays++;
+                    cur.setDate(cur.getDate() + 1);
+                }
+
+                const timeToStart = start - today;
+                const daysUntil = Math.ceil(timeToStart / (1000 * 60 * 60 * 24));
+
+                let status = 'UPCOMING';
+                if (today >= start && today <= end) status = 'IN_PROGRESS';
+                else if (today > end) status = 'PAST';
+
+                return { travelDays, daysAtSite: travelDays, weekendDays, status, daysUntil };
+            };
+
+            const getCountbackMilestones = (evt) => {
+                if (evt.isTBD || !evt.startDate) return [];
+                const departure = new Date(evt.startDate + 'T00:00:00');
+                
+                const offsets = [
+                    { label: 'T-60 Days', days: 60, title: 'Venue & Hotel Lock' },
+                    { label: 'T-30 Days', days: 30, title: 'Staffing & Flights Finalized' },
+                    { label: 'T-14 Days', days: 14, title: 'Freight & AV Logistics' },
+                    { label: 'T-7 Days', days: 7, title: 'Final Team Briefing' }
+                ];
+
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                return offsets.map(m => {
+                    const milestoneDate = new Date(departure);
+                    milestoneDate.setDate(milestoneDate.getDate() - m.days);
+                    const isPassed = today >= milestoneDate;
+                    return { ...m, dateStr: milestoneDate.toISOString().split('T')[0], isPassed };
+                });
+            };
+
+            const getEventConflicts = (evt) => {
+                if (evt.isTBD || !evt.startDate || !evt.endDate || evt.confirmationStatus === 'CANCELLED') return [];
+                const eStart = new Date(evt.startDate + 'T00:00:00');
+                const eEnd = new Date(evt.endDate + 'T00:00:00');
+
+                const conflicts = [];
+
+                timeOffEntries.forEach(to => {
+                    const toStart = new Date(to.startDate + 'T00:00:00');
+                    const toEnd = new Date(to.endDate + 'T00:00:00');
+
+                    if (eStart <= toEnd && eEnd >= toStart) {
+                        if (to.person === 'Global') {
+                            conflicts.push({ type: 'HOLIDAY', title: `${to.title} (Company Holiday)`, person: 'Global' });
+                        } else if (evt.team.includes(to.person)) {
+                            conflicts.push({ type: to.type, title: `${to.person}: ${to.title}`, person: to.person });
+                        }
+                    }
+                });
+
+                return conflicts;
+            };
+
+            const calendarDaysList = useMemo(() => {
+                const list = [];
+                const s = new Date(ganttCustomStart + 'T00:00:00');
+                const e = new Date(ganttCustomEnd + 'T00:00:00');
+
+                if (isNaN(s.getTime()) || isNaN(e.getTime()) || s > e) return list;
+
+                let cur = new Date(s);
+                while (cur <= e) {
+                    list.push(new Date(cur));
+                    cur.setDate(cur.getDate() + 1);
+                }
+                return list;
+            }, [ganttCustomStart, ganttCustomEnd]);
+
+            const calendarMonthGroups = useMemo(() => {
+                const groups = [];
+                calendarDaysList.forEach((d) => {
+                    const monthName = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+                    if (groups.length === 0 || groups[groups.length - 1].monthName !== monthName) {
+                        groups.push({ monthName, count: 1 });
+                    } else {
+                        groups[groups.length - 1].count++;
+                    }
+                });
+                return groups;
+            }, [calendarDaysList]);
+
+            const handleApplyPreset = (preset) => {
+                setGanttRangePreset(preset);
+                if (preset === 'SEP_DEC_2026') {
+                    setGanttCustomStart('2026-09-01');
+                    setGanttCustomEnd('2026-12-31');
+                } else if (preset === 'NEXT_60') {
+                    const start = new Date();
+                    const end = new Date();
+                    end.setDate(end.getDate() + 60);
+                    setGanttCustomStart(start.toISOString().split('T')[0]);
+                    setGanttCustomEnd(end.toISOString().split('T')[0]);
+                } else if (preset === 'NEXT_90') {
+                    const start = new Date();
+                    const end = new Date();
+                    end.setDate(end.getDate() + 90);
+                    setGanttCustomStart(start.toISOString().split('T')[0]);
+                    setGanttCustomEnd(end.toISOString().split('T')[0]);
+                } else if (preset === 'FULL_FY') {
+                    if (ganttFY === 'FY27') {
+                        setGanttCustomStart('2026-07-01');
+                        setGanttCustomEnd('2027-06-30');
+                    } else if (ganttFY === 'FY28') {
+                        setGanttCustomStart('2027-07-01');
+                        setGanttCustomEnd('2028-06-30');
+                    } else if (ganttFY === 'FY29') {
+                        setGanttCustomStart('2028-07-01');
+                        setGanttCustomEnd('2029-06-30');
+                    } else {
+                        setGanttCustomStart('2025-07-01');
+                        setGanttCustomEnd('2026-06-30');
+                    }
+                }
+            };
+
+            const getDayRangePlacement = (startDateStr, endDateStr) => {
+                if (!calendarDaysList.length || !startDateStr || !endDateStr) return null;
+
+                const gridStart = calendarDaysList[0].getTime();
+                const gridEnd = calendarDaysList[calendarDaysList.length - 1].getTime() + 86400000;
+                const totalGridMs = gridEnd - gridStart;
+
+                const eStart = new Date(startDateStr + 'T00:00:00').getTime();
+                const eEnd = new Date(endDateStr + 'T23:59:59').getTime();
+
+                if (eEnd < gridStart || eStart > gridEnd) return null;
+
+                const clampedStart = Math.max(eStart, gridStart);
+                const clampedEnd = Math.min(eEnd, gridEnd);
+
+                const leftPercent = ((clampedStart - gridStart) / totalGridMs) * 100;
+                const widthPercent = Math.max(1.2, ((clampedEnd - clampedStart) / totalGridMs) * 100);
+
+                return { leftPercent, widthPercent };
+            };
+
+            const openAddEventModal = () => {
+                setEditingEvent(null);
+                setEventFormData({
+                    project: '',
+                    venue: '',
+                    city: '',
+                    state: '',
+                    startDate: '',
+                    endDate: '',
+                    isTBD: false,
+                    confirmationStatus: 'CONFIRMED',
+                    fiscalYear: filterFY !== 'ALL' ? filterFY : 'FY27',
+                    team: [],
+                    notes: ''
+                });
+                setIsEventModalOpen(true);
+            };
+
+            const openEditEventModal = (evt) => {
+                setEditingEvent(evt);
+                setEventFormData({
+                    project: evt.project || '',
+                    venue: evt.venue || '',
+                    city: evt.city || '',
+                    state: evt.state || '',
+                    startDate: evt.startDate || '',
+                    endDate: evt.endDate || '',
+                    isTBD: evt.isTBD || false,
+                    confirmationStatus: evt.confirmationStatus || 'CONFIRMED',
+                    fiscalYear: getEventFY(evt),
+                    team: [...(evt.team || [])],
+                    notes: evt.notes || ''
+                });
+                setIsEventModalOpen(true);
+            };
+
+            const saveEvent = (e) => {
+                e.preventDefault();
+                if (!eventFormData.project) return;
+
+                if (editingEvent) {
+                    setEvents(events.map(item => item.id === editingEvent.id ? { ...eventFormData, id: editingEvent.id } : item));
+                } else {
+                    const newEvt = {
+                        ...eventFormData,
+                        id: `evt-${Date.now()}`
+                    };
+                    setEvents([...events, newEvt]);
+                }
+                setIsEventModalOpen(false);
+            };
+
+            const confirmDeleteEvent = (evt) => {
+                setEventToDelete(evt);
+                setIsDeleteModalOpen(true);
+            };
+
+            const executeDeleteEvent = () => {
+                if (eventToDelete) {
+                    setEvents(events.filter(e => e.id !== eventToDelete.id));
+                    setEventToDelete(null);
+                    setIsDeleteModalOpen(false);
+                }
+            };
+
+            const filteredEvents = useMemo(() => {
+                return events.filter(e => {
+                    const matchFY = filterFY === 'ALL' || getEventFY(e) === filterFY;
+                    const matchStatus = filterStatus === 'ALL' || e.confirmationStatus === filterStatus;
+                    const q = searchQuery.toLowerCase();
+                    const matchQuery = !q || 
+                        e.project.toLowerCase().includes(q) || 
+                        e.venue.toLowerCase().includes(q) || 
+                        e.city.toLowerCase().includes(q) ||
+                        e.team.some(t => t.toLowerCase().includes(q));
+                    return matchFY && matchStatus && matchQuery;
+                });
+            }, [events, filterFY, filterStatus, searchQuery]);
+
+            return (
+                <div className="min-h-full flex flex-col bg-slate-950 text-slate-100">
+                    <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-gradient-to-tr from-indigo-600 to-indigo-400 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+                                        <IconCalendar />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
+                                            Team Travel Tracker
+                                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-mono font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">
+                                                Multi-FY Hub
+                                            </span>
+                                        </h1>
+                                        <p className="text-xs text-slate-400">Project Travel, On-Site Days & Schedule Planning</p>
+                                    </div>
+                                </div>
+
+                                <nav className="flex items-center bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 space-x-1">
+                                    <button
+                                        onClick={() => setActiveTab('events')}
+                                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                                            activeTab === 'events' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        <IconCalendar /> All Events ({events.length})
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('gantt')}
+                                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                                            activeTab === 'gantt' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        <IconGantt /> Gantt Timeline
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('workload')}
+                                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                                            activeTab === 'workload' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        <IconUsers /> Team Workload
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('profile')}
+                                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                                            activeTab === 'profile' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        <IconUser /> Member Profiles
+                                    </button>
+                                </nav>
+
+                                <button
+                                    onClick={openAddEventModal}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition transform active:scale-95"
+                                >
+                                    <IconPlus /> Add Event
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+                        {}
+                        <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow-lg">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider pr-2">Fiscal Year Filter:</span>
+                                {['ALL', 'FY26', 'FY27', 'FY28', 'FY29'].map((fy) => (
+                                    <button
+                                        key={fy}
+                                        onClick={() => setFilterFY(fy)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                                            filterFY === fy ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-400/30' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        {fy === 'ALL' ? 'All Fiscal Years' : fy}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider pr-1">Status:</span>
+                                {['ALL', 'CONFIRMED', 'UNCONFIRMED', 'CANCELLED'].map((st) => (
+                                    <button
+                                        key={st}
+                                        onClick={() => setFilterStatus(st)}
+                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                                            filterStatus === st ? 'bg-slate-700 text-white border border-slate-500' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {st}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {}
+                        {activeTab === 'events' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between gap-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by project, venue, city, or staff..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full max-w-md shadow-inner"
+                                    />
+                                    <span className="text-xs text-slate-400 font-semibold font-mono">
+                                        Showing {filteredEvents.length} of {events.length} Events
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                                    {filteredEvents.map(evt => {
+                                        const metrics = getEventMetrics(evt);
+                                        const milestones = getCountbackMilestones(evt);
+                                        const conflicts = getEventConflicts(evt);
+                                        const fy = getEventFY(evt);
+
+                                        return (
+                                            <div key={evt.id} className="bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-5 shadow-xl transition-all duration-200 flex flex-col justify-between group relative overflow-hidden">
+                                                <div>
+                                                    <div className="flex items-center justify-between gap-2 mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
+                                                                {fy}
+                                                            </span>
+                                                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                                                                evt.confirmationStatus === 'CANCELLED' ? 'bg-rose-950/80 text-rose-300 border-rose-800' :
+                                                                evt.confirmationStatus === 'UNCONFIRMED' ? 'bg-amber-950/80 text-amber-300 border-amber-800' :
+                                                                'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                                                            }`}>
+                                                                {evt.confirmationStatus || 'CONFIRMED'}
+                                                            </span>
+                                                        </div>
+
+                                                        {metrics.daysUntil !== null && evt.confirmationStatus !== 'CANCELLED' && (
+                                                            <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-md ${
+                                                                metrics.status === 'IN_PROGRESS' ? 'bg-emerald-500 text-white animate-pulse' :
+                                                                metrics.daysUntil <= 30 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                                                                'bg-slate-800 text-slate-300'
+                                                            }`}>
+                                                                {metrics.status === 'IN_PROGRESS' ? '• ACTIVE SITE' : `${metrics.daysUntil}d Countdown`}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <h3 className={`font-extrabold text-base text-white group-hover:text-indigo-300 transition ${evt.confirmationStatus === 'CANCELLED' ? 'line-through text-slate-500' : ''}`}>
+                                                        {evt.project}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                                                        <IconMapPin /> {evt.venue} • <span className="text-slate-300 font-semibold">{evt.city}, {evt.state}</span>
+                                                    </p>
+
+                                                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 mt-3 space-y-1.5">
+                                                        <div className="flex items-center justify-between text-xs">
+                                                            <span className="text-slate-400 font-medium">Travel Dates:</span>
+                                                            <span className="font-mono font-bold text-indigo-200">
+                                                                {evt.startDate} → {evt.endDate}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/50">
+                                                            <span className="text-slate-400 font-medium">Site Duration:</span>
+                                                            <span className="font-bold text-slate-200">
+                                                                {metrics.travelDays} Total Days ({metrics.weekendDays} Weekend)
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {conflicts.length > 0 && evt.confirmationStatus !== 'CANCELLED' && (
+                                                        <div className="mt-3 bg-rose-950/50 border border-rose-800/60 rounded-xl p-2.5 text-xs text-rose-300 flex items-start gap-2">
+                                                            <IconAlert />
+                                                            <div>
+                                                                <span className="font-bold block">Schedule Conflict:</span>
+                                                                {conflicts.map((c, idx) => (
+                                                                    <p key={idx} className="text-[11px] opacity-90">• {c.title}</p>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="mt-4">
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Assigned Staff:</span>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {evt.team.map((person, idx) => (
+                                                                <span key={idx} className="bg-slate-800 text-indigo-300 border border-indigo-900/50 text-xs px-2.5 py-0.5 rounded-lg font-semibold">
+                                                                    {person}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                                                    <button
+                                                        onClick={() => openEditEventModal(evt)}
+                                                        className="text-slate-400 hover:text-indigo-300 font-semibold transition"
+                                                    >
+                                                        Edit Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => confirmDeleteEvent(evt)}
+                                                        className="text-slate-500 hover:text-rose-400 font-semibold transition"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {activeTab === 'gantt' && (
+                            <div className="space-y-5">
+                                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                                            <button
+                                                onClick={() => setGanttGroupBy('personnel')}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                                                    ganttGroupBy === 'personnel' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                                                }`}
+                                            >
+                                                <IconUsers /> By Personnel
+                                            </button>
+                                            <button
+                                                onClick={() => setGanttGroupBy('project')}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                                                    ganttGroupBy === 'project' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                                                }`}
+                                            >
+                                                <IconGantt /> By Project
+                                            </button>
+                                        </div>
+
+                                        <span className="h-5 w-px bg-slate-800 hidden sm:block"></span>
+
+                                        <span className="text-xs text-slate-400 font-bold uppercase tracking-wider pr-1">Presets:</span>
+                                        <button
+                                            onClick={() => handleApplyPreset('SEP_DEC_2026')}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                                                ganttRangePreset === 'SEP_DEC_2026' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            Sep – Dec 2026
+                                        </button>
+                                        <button
+                                            onClick={() => handleApplyPreset('NEXT_60')}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                                                ganttRangePreset === 'NEXT_60' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            Next 60 Days
+                                        </button>
+                                        <button
+                                            onClick={() => handleApplyPreset('NEXT_90')}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                                                ganttRangePreset === 'NEXT_90' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            Next 90 Days
+                                        </button>
+                                        <button
+                                            onClick={() => handleApplyPreset('FULL_FY')}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                                                ganttRangePreset === 'FULL_FY' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            Full Fiscal Year
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                                            <span className="text-xs text-slate-400 font-semibold">From:</span>
+                                            <input
+                                                type="date"
+                                                value={ganttCustomStart}
+                                                onChange={(e) => {
+                                                    setGanttCustomStart(e.target.value);
+                                                    setGanttRangePreset('CUSTOM');
+                                                }}
+                                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-indigo-300 font-mono font-bold focus:outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                                            <span className="text-xs text-slate-400 font-semibold">To:</span>
+                                            <input
+                                                type="date"
+                                                value={ganttCustomEnd}
+                                                onChange={(e) => {
+                                                    setGanttCustomEnd(e.target.value);
+                                                    setGanttRangePreset('CUSTOM');
+                                                }}
+                                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-indigo-300 font-mono font-bold focus:outline-none"
+                                            />
+                                        </div>
+                                        <span className="text-xs font-mono font-bold text-emerald-400 px-3 py-1.5 bg-emerald-950/80 rounded-xl border border-emerald-800">
+                                            {calendarDaysList.length} Days Visible
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="border border-slate-800 rounded-2xl bg-slate-900/90 overflow-x-auto custom-scrollbar shadow-2xl">
+                                    <div 
+                                        style={{ minWidth: `${Math.max(1200, calendarDaysList.length * 42 + 320)}px` }} 
+                                        className="relative"
+                                    >
+                                        {}
+                                        <div className="flex border-b border-slate-800 bg-slate-950 text-xs font-extrabold text-slate-200">
+                                            <div className="w-80 shrink-0 p-3.5 bg-slate-950 sticky left-0 z-30 border-r border-slate-800 uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                                                <span>{ganttGroupBy === 'personnel' ? 'Personnel & Schedule' : 'Project & Staff'}</span>
+                                                <span className="text-[10px] text-indigo-400 font-mono">42px/day scale</span>
+                                            </div>
+                                            <div className="flex-1 flex divide-x divide-slate-800">
+                                                {calendarMonthGroups.map((mg, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        style={{ flex: mg.count }}
+                                                        className="py-2.5 px-2 text-center text-indigo-300 text-sm font-extrabold bg-slate-900/95 border-r border-slate-800 truncate"
+                                                    >
+                                                        {mg.monthName} <span className="text-xs text-slate-500 font-normal">({mg.count}d)</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex border-b border-slate-800 bg-slate-950/80 text-xs text-slate-300 font-mono">
+                                            <div className="w-80 shrink-0 p-2.5 bg-slate-950 sticky left-0 z-30 border-r border-slate-800 text-slate-400 font-sans font-semibold">
+                                                Dates Overview
+                                            </div>
+                                            <div className="flex-1 flex divide-x divide-slate-800/80">
+                                                {calendarDaysList.map((dObj, i) => {
+                                                    const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+                                                    const dayLetter = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][dObj.getDay()];
+
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            className={`flex-1 py-2 text-center flex flex-col justify-center items-center transition ${
+                                                                isWeekend 
+                                                                    ? 'bg-amber-500/15 text-amber-300 font-extrabold border-x border-amber-500/20' 
+                                                                    : 'text-slate-200'
+                                                            }`}
+                                                        >
+                                                            <span className="text-xs font-bold">{dObj.getDate()}</span>
+                                                            <span className={`text-[10px] uppercase font-sans mt-0.5 ${isWeekend ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
+                                                                {dayLetter}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {}
+                                        <div className="divide-y divide-slate-800/80">
+                                            {ganttGroupBy === 'personnel' ? (
+                                                TEAM_MEMBERS.map(member => {
+                                                    const memberEvts = filteredEvents.filter(e => e.team.includes(member.name));
+                                                    const memberTimeOff = timeOffEntries.filter(to => to.person === member.name || to.person === 'Global');
+
+                                                    return (
+                                                        <div key={member.id} className="flex hover:bg-slate-800/30 transition group min-h-[72px]">
+                                                            <div className="w-80 shrink-0 p-3.5 bg-slate-900/95 sticky left-0 z-20 border-r border-slate-800 flex flex-col justify-center space-y-1 shadow-md">
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="w-8 h-8 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-bold flex items-center justify-center text-xs shrink-0">
+                                                                        {member.name.split(' ').map(n=>n[0]).join('')}
+                                                                    </div>
+                                                                    <div className="truncate">
+                                                                        <p className="font-extrabold text-sm text-white truncate max-w-[200px]" title={member.name}>
+                                                                            {member.name}
+                                                                        </p>
+                                                                        <p className="text-[11px] text-slate-400 truncate">{member.role}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 pt-0.5">
+                                                                    <span className="text-[10px] font-bold text-indigo-300 bg-indigo-950/80 border border-indigo-800/60 px-2 py-0.5 rounded">
+                                                                        {memberEvts.length} Assigned {memberEvts.length === 1 ? 'Show' : 'Shows'}
+                                                                    </span>
+                                                                    {memberTimeOff.length > 0 && (
+                                                                        <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 border border-amber-800/60 px-2 py-0.5 rounded">
+                                                                            {memberTimeOff.length} Leave/Block
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex-1 relative min-h-[72px] py-2 flex flex-col justify-center gap-1.5">
+                                                                <div className="absolute inset-0 flex divide-x divide-slate-800/40 pointer-events-none">
+                                                                    {calendarDaysList.map((dObj, idx) => {
+                                                                        const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+                                                                        return (
+                                                                            <div key={idx} className={`flex-1 h-full ${isWeekend ? 'bg-amber-500/5' : ''}`}></div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                {memberEvts.map(evt => {
+                                                                    const placement = getDayRangePlacement(evt.startDate, evt.endDate);
+                                                                    if (!placement) return null;
+                                                                    const metrics = getEventMetrics(evt);
+                                                                    const conflicts = getEventConflicts(evt);
+
+                                                                    return (
+                                                                        <div
+                                                                            key={evt.id}
+                                                                            style={{
+                                                                                left: `${placement.leftPercent}%`,
+                                                                                width: `${placement.widthPercent}%`
+                                                                            }}
+                                                                            className={`relative z-10 h-8 rounded-xl px-2.5 flex items-center justify-between text-xs font-bold shadow-md transition-all border ${
+                                                                                evt.confirmationStatus === 'CANCELLED' ? 'bg-rose-950/80 border-rose-700 text-rose-300 line-through' :
+                                                                                evt.confirmationStatus === 'UNCONFIRMED' ? 'bg-amber-600/90 border-amber-400 text-white' :
+                                                                                conflicts.length > 0 ? 'bg-gradient-to-r from-indigo-600 to-rose-600 border-rose-400 text-white' :
+                                                                                'bg-indigo-600 border-indigo-400 text-white hover:bg-indigo-500'
+                                                                            }`}
+                                                                            title={`${evt.project} (${evt.city}, ${evt.state}) - ${evt.startDate} to ${evt.endDate}`}
+                                                                        >
+                                                                            <span className="truncate pr-1 font-extrabold tracking-wide">
+                                                                                {evt.project} ({evt.city})
+                                                                            </span>
+                                                                            <span className="shrink-0 text-[10px] font-mono opacity-90">
+                                                                                {metrics.travelDays}d
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+
+                                                                {memberTimeOff.map(to => {
+                                                                    const placement = getDayRangePlacement(to.startDate, to.endDate);
+                                                                    if (!placement) return null;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={to.id}
+                                                                            style={{
+                                                                                left: `${placement.leftPercent}%`,
+                                                                                width: `${placement.widthPercent}%`
+                                                                            }}
+                                                                            className="relative z-10 h-6 rounded-lg px-2 flex items-center justify-between text-[11px] font-bold border border-amber-500/60 bg-amber-950/90 text-amber-200 shadow-sm"
+                                                                            title={`${to.title} (${to.type}) - ${to.startDate} to ${to.endDate}`}
+                                                                        >
+                                                                            <span className="truncate pr-1 font-semibold">
+                                                                                🌴 {to.title} ({to.type})
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+
+                                                                {memberEvts.length === 0 && memberTimeOff.length === 0 && (
+                                                                    <div className="w-full text-center text-xs text-slate-500 italic py-2">
+                                                                        No scheduled shows or leave in this date window
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                filteredEvents.map(evt => {
+                                                    const placement = getDayRangePlacement(evt.startDate, evt.endDate);
+                                                    const metrics = getEventMetrics(evt);
+                                                    const conflicts = getEventConflicts(evt);
+
+                                                    return (
+                                                        <div key={evt.id} className="flex items-center hover:bg-slate-800/40 transition group min-h-[56px]">
+                                                            <div className="w-80 shrink-0 p-3.5 bg-slate-900/95 sticky left-0 z-20 border-r border-slate-800 space-y-1 shadow-md">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                                                        {getEventFY(evt)}
+                                                                    </span>
+                                                                    <p className="font-extrabold text-sm text-white truncate max-w-[210px]" title={evt.project}>
+                                                                        {evt.project}
+                                                                    </p>
+                                                                </div>
+                                                                <p className="text-xs text-slate-400 truncate">{evt.venue} • {evt.city}</p>
+                                                                <div className="flex items-center gap-1 pt-0.5">
+                                                                    {evt.team.map((t, idx) => (
+                                                                        <span key={idx} className="bg-slate-800 text-[10px] font-semibold text-indigo-300 px-2 py-0.5 rounded border border-indigo-900">
+                                                                            {t.split(' ')[0]}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex-1 relative h-14 flex items-center">
+                                                                <div className="absolute inset-0 flex divide-x divide-slate-800/40 pointer-events-none">
+                                                                    {calendarDaysList.map((dObj, idx) => {
+                                                                        const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+                                                                        return (
+                                                                            <div key={idx} className={`flex-1 h-full ${isWeekend ? 'bg-amber-500/5' : ''}`}></div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                {!evt.isTBD && placement ? (
+                                                                    <div
+                                                                        style={{
+                                                                            left: `${placement.leftPercent}%`,
+                                                                            width: `${placement.widthPercent}%`
+                                                                        }}
+                                                                        className={`absolute h-10 rounded-xl px-3 flex items-center justify-between text-xs font-bold shadow-xl transition-all border ${
+                                                                            evt.confirmationStatus === 'CANCELLED' ? 'bg-rose-950/80 border-rose-700 text-rose-300 line-through' :
+                                                                            evt.confirmationStatus === 'UNCONFIRMED' ? 'bg-amber-600/90 border-amber-400 text-white' :
+                                                                            conflicts.length > 0 ? 'bg-gradient-to-r from-indigo-600 to-rose-600 border-rose-400 text-white' :
+                                                                            'bg-indigo-600 border-indigo-400 text-white hover:bg-indigo-500'
+                                                                        }`}
+                                                                    >
+                                                                        <span className="truncate pr-2 font-extrabold tracking-wide">
+                                                                            {evt.project} ({metrics.travelDays}d)
+                                                                        </span>
+                                                                        {conflicts.length > 0 && (
+                                                                            <span className="shrink-0 bg-rose-900 text-rose-200 text-[10px] px-1.5 py-0.5 rounded border border-rose-500/50">
+                                                                                ⚠️
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="w-full text-center text-xs text-slate-500 italic">
+                                                                        Outside Selected Date Window
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {activeTab === 'workload' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-white">Team Staffing & Time-Off Overview</h2>
+                                        <p className="text-xs text-slate-400">Total days on site, weekend travel impact, and recorded leave</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsTimeOffModalOpen(true)}
+                                        className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-300 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition"
+                                    >
+                                        <IconPlus /> Log Time-Off / Holiday
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                                    {TEAM_MEMBERS.map(member => {
+                                        const assignedEvts = events.filter(e => 
+                                            e.team.includes(member.name) && 
+                                            e.confirmationStatus !== 'CANCELLED' &&
+                                            (filterFY === 'ALL' || getEventFY(e) === filterFY)
+                                        );
+
+                                        let totalDaysOnSite = 0;
+                                        let totalWeekendDays = 0;
+
+                                        assignedEvts.forEach(e => {
+                                            const m = getEventMetrics(e);
+                                            totalDaysOnSite += m.daysAtSite;
+                                            totalWeekendDays += m.weekendDays;
+                                        });
+
+                                        const memberLeave = timeOffEntries.filter(to => to.person === member.name || to.person === 'Global');
+
+                                        return (
+                                            <div key={member.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-bold flex items-center justify-center text-sm">
+                                                                {member.name.split(' ').map(n=>n[0]).join('')}
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="font-extrabold text-white text-sm">{member.name}</h3>
+                                                                <p className="text-xs text-slate-400">{member.role}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800 text-center my-3">
+                                                        <div>
+                                                            <span className="text-[10px] text-slate-500 uppercase font-bold block">Shows</span>
+                                                            <span className="text-base font-extrabold text-indigo-300">{assignedEvts.length}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[10px] text-slate-500 uppercase font-bold block">Site Days</span>
+                                                            <span className="text-base font-extrabold text-emerald-400">{totalDaysOnSite}d</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[10px] text-slate-500 uppercase font-bold block">Weekends</span>
+                                                            <span className="text-base font-extrabold text-amber-400">{totalWeekendDays}d</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-1.5 mt-3">
+                                                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Recorded Leave / Holidays:</span>
+                                                        {memberLeave.length === 0 ? (
+                                                            <p className="text-xs text-slate-500 italic">No leave recorded</p>
+                                                        ) : (
+                                                            memberLeave.map(to => (
+                                                                <div key={to.id} className="bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 text-xs flex items-center justify-between">
+                                                                    <span className="font-semibold text-slate-300">{to.title} ({to.type})</span>
+                                                                    <span className="font-mono text-[10px] text-indigo-300">{to.startDate} → {to.endDate}</span>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedMemberProfile(member.name);
+                                                        setActiveTab('profile');
+                                                    }}
+                                                    className="mt-4 w-full bg-slate-800 hover:bg-slate-700 text-xs font-bold text-indigo-300 py-2 rounded-xl transition border border-slate-700"
+                                                >
+                                                    View Detailed Member Profile →
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {activeTab === 'profile' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 custom-scrollbar">
+                                    {TEAM_MEMBERS.map(m => (
+                                        <button
+                                            key={m.id}
+                                            onClick={() => setSelectedMemberProfile(m.name)}
+                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+                                                selectedMemberProfile === m.name ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                                            }`}
+                                        >
+                                            {m.name}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {(() => {
+                                    const member = TEAM_MEMBERS.find(m => m.name === selectedMemberProfile) || TEAM_MEMBERS[0];
+                                    const memberEvents = events.filter(e => e.team.includes(member.name));
+                                    const memberLeave = timeOffEntries.filter(to => to.person === member.name || to.person === 'Global');
+
+                                    let totalSiteDays = 0;
+                                    let totalWeekendDays = 0;
+                                    memberEvents.forEach(e => {
+                                        if (e.confirmationStatus !== 'CANCELLED') {
+                                            const m = getEventMetrics(e);
+                                            totalSiteDays += m.daysAtSite;
+                                            totalWeekendDays += m.weekendDays;
+                                        }
+                                    });
+
+                                    return (
+                                        <div className="space-y-6">
+                                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white font-extrabold text-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                                                        {member.name.split(' ').map(n=>n[0]).join('')}
+                                                    </div>
+                                                    <div>
+                                                        <h2 className="text-xl font-extrabold text-white">{member.name}</h2>
+                                                        <p className="text-xs text-indigo-300 font-semibold">{member.role} • {member.location}</p>
+                                                        <p className="text-xs text-slate-400 font-mono mt-1">{member.email}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <div className="bg-slate-950 px-4 py-3 rounded-xl border border-slate-800 text-center">
+                                                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Assigned Shows</span>
+                                                        <span className="text-lg font-extrabold text-white">{memberEvents.length}</span>
+                                                    </div>
+                                                    <div className="bg-slate-950 px-4 py-3 rounded-xl border border-slate-800 text-center">
+                                                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Site Days</span>
+                                                        <span className="text-lg font-extrabold text-emerald-400">{totalSiteDays}d</span>
+                                                    </div>
+                                                    <div className="bg-slate-950 px-4 py-3 rounded-xl border border-slate-800 text-center">
+                                                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Weekend Days</span>
+                                                        <span className="text-lg font-extrabold text-amber-400">{totalWeekendDays}d</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Show Travel Ledger ({memberEvents.length})</h3>
+                                                <div className="divide-y divide-slate-800">
+                                                    {memberEvents.map(e => {
+                                                        const m = getEventMetrics(e);
+
+                                                        return (
+                                                            <div key={e.id} className="py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                                                <div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono px-2 py-0.5 rounded font-bold">
+                                                                            {getEventFY(e)}
+                                                                        </span>
+                                                                        <h4 className="font-extrabold text-white text-sm">{e.project}</h4>
+                                                                    </div>
+                                                                    <p className="text-xs text-slate-400 mt-0.5">{e.venue} • {e.city}, {e.state}</p>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="text-right">
+                                                                        <span className="font-mono text-xs text-indigo-200 font-bold block">{e.startDate} → {e.endDate}</span>
+                                                                        <span className="text-[11px] text-slate-400">{m.daysAtSite} Site Days ({m.weekendDays} Weekend)</span>
+                                                                    </div>
+                                                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                                                                        e.confirmationStatus === 'CANCELLED' ? 'bg-rose-950/80 text-rose-300 border-rose-800' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                                                                    }`}>
+                                                                        {e.confirmationStatus || 'CONFIRMED'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                    </main>
+
+                    {}
+                    {isEventModalOpen && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+                                <h3 className="text-lg font-bold text-white">{editingEvent ? 'Edit Travel Event' : 'Add New Travel Event'}</h3>
+                                <form onSubmit={saveEvent} className="space-y-3">
+                                    <div>
+                                        <label className="text-xs text-slate-400 font-semibold block mb-1">Project Name</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={eventFormData.project}
+                                            onChange={e => setEventFormData({...eventFormData, project: e.target.value})}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                            placeholder="e.g. Apex Retail Summit"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">Venue</label>
+                                            <input
+                                                type="text"
+                                                value={eventFormData.venue}
+                                                onChange={e => setEventFormData({...eventFormData, venue: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">City, State</label>
+                                            <input
+                                                type="text"
+                                                value={`${eventFormData.city}${eventFormData.state ? ', ' + eventFormData.state : ''}`}
+                                                onChange={e => {
+                                                    const parts = e.target.value.split(',');
+                                                    setEventFormData({
+                                                        ...eventFormData, 
+                                                        city: parts[0] ? parts[0].trim() : '', 
+                                                        state: parts[1] ? parts[1].trim() : ''
+                                                    });
+                                                }}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                                placeholder="Nashville, TN"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">Start Date</label>
+                                            <input
+                                                type="date"
+                                                value={eventFormData.startDate}
+                                                onChange={e => setEventFormData({...eventFormData, startDate: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-sm text-indigo-300 font-mono focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={eventFormData.endDate}
+                                                onChange={e => setEventFormData({...eventFormData, endDate: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-sm text-indigo-300 font-mono focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">Fiscal Year</label>
+                                            <select
+                                                value={eventFormData.fiscalYear}
+                                                onChange={e => setEventFormData({...eventFormData, fiscalYear: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                                            >
+                                                <option value="FY26">FY26</option>
+                                                <option value="FY27">FY27</option>
+                                                <option value="FY28">FY28</option>
+                                                <option value="FY29">FY29</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">Confirmation Status</label>
+                                            <select
+                                                value={eventFormData.confirmationStatus}
+                                                onChange={e => setEventFormData({...eventFormData, confirmationStatus: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                                            >
+                                                <option value="CONFIRMED">CONFIRMED</option>
+                                                <option value="UNCONFIRMED">UNCONFIRMED</option>
+                                                <option value="CANCELLED">CANCELLED</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs text-slate-400 font-semibold block mb-1.5">Assign Team Members</label>
+                                        <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                            {TEAM_MEMBERS.map(m => {
+                                                const checked = eventFormData.team.includes(m.name);
+                                                return (
+                                                    <label key={m.id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={e => {
+                                                                if (e.target.checked) {
+                                                                    setEventFormData({...eventFormData, team: [...eventFormData.team, m.name]});
+                                                                } else {
+                                                                    setEventFormData({...eventFormData, team: eventFormData.team.filter(t => t !== m.name)});
+                                                                }
+                                                            }}
+                                                            className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-0"
+                                                        />
+                                                        {m.name}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-end gap-3 pt-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEventModalOpen(false)}
+                                            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg"
+                                        >
+                                            Save Event
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {}
+                    {isTimeOffModalOpen && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                                <h3 className="text-lg font-bold text-white">Log Time-Off or Holiday Block</h3>
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        if (!timeOffFormData.title || !timeOffFormData.startDate) return;
+                                        setTimeOffEntries([...timeOffEntries, { ...timeOffFormData, id: `to-${Date.now()}` }]);
+                                        setIsTimeOffModalOpen(false);
+                                    }}
+                                    className="space-y-3"
+                                >
+                                    <div>
+                                        <label className="text-xs text-slate-400 font-semibold block mb-1">Target Individual / Scope</label>
+                                        <select
+                                            value={timeOffFormData.person}
+                                            onChange={e => setTimeOffFormData({...timeOffFormData, person: e.target.value})}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                                        >
+                                            <option value="Global">Global / Entire Team (Holiday)</option>
+                                            {TEAM_MEMBERS.map(m => (
+                                                <option key={m.id} value={m.name}>{m.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs text-slate-400 font-semibold block mb-1">Leave Type & Title</label>
+                                        <div className="grid grid-cols-3 gap-2 mb-2">
+                                            {['PTO', 'HOLIDAY', 'NO_TRAVEL'].map(t => (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => setTimeOffFormData({...timeOffFormData, type: t})}
+                                                    className={`py-1.5 rounded-lg text-xs font-bold transition ${
+                                                        timeOffFormData.type === t ? 'bg-indigo-600 text-white' : 'bg-slate-950 text-slate-400'
+                                                    }`}
+                                                >
+                                                    {t}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={timeOffFormData.title}
+                                            onChange={e => setTimeOffFormData({...timeOffFormData, title: e.target.value})}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none"
+                                            placeholder="e.g. Personal Vacation / Thanksgiving"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">Start Date</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={timeOffFormData.startDate}
+                                                onChange={e => setTimeOffFormData({...timeOffFormData, startDate: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-sm text-indigo-300 font-mono focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-400 font-semibold block mb-1">End Date</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={timeOffFormData.endDate}
+                                                onChange={e => setTimeOffFormData({...timeOffFormData, endDate: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-sm text-indigo-300 font-mono focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-end gap-3 pt-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsTimeOffModalOpen(false)}
+                                            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg"
+                                        >
+                                            Save Time-Off
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {}
+                    {isDeleteModalOpen && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 text-center">
+                                <h3 className="text-base font-bold text-white">Delete Travel Event?</h3>
+                                <p className="text-xs text-slate-400">
+                                    Are you sure you want to remove <span className="text-white font-bold">{eventToDelete?.project}</span>?
+                                </p>
+                                <div className="flex items-center justify-center gap-3 pt-2">
+                                    <button
+                                        onClick={() => setIsDeleteModalOpen(false)}
+                                        className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={executeDeleteEvent}
+                                        className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg"
+                                    >
+                                        Yes, Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

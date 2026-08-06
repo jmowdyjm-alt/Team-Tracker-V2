@@ -21,13 +21,13 @@ Schedule Conflict Detector: Flags overlaps between show dates and recorded PTO, 
 🚀 Live Demo
 
 Access the live dashboard here:
-https://YOUR-USERNAME.github.io/team-travel-tracker/
+https://jmowdyjm-alt.github.io/Team-Tracker-V2/
 
 🛠️ Usage & Installation
 
 Clone or download this repository:
 
-git clone https://github.com/YOUR-USERNAME/team-travel-tracker.git
+git clone https://github.com/jmowdyjm-alt/Team-Tracker-V2.git
 
 
 Open team_travel_tracker.html (or index.html) in any modern web browser. No backend server or npm install required!
